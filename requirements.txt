@@ -1,0 +1,7 @@
+aiohttp
+annotated-types
+ddapi>=0.4.7
+nextcord==2.6.0
+pillow==10.4.0
+pydantic
+pyparsing==3.1.2
