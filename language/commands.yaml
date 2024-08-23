@@ -1,0 +1,168 @@
+rank_points:
+  name: rank_points
+  desc: Creates rank point charts
+  name_lang:
+    ru: ранг_поинты
+  desc_lang:
+    ru: Создаёт графики по ранг поинтам
+
+settings:
+  name: settings
+  desc: Edits server settings
+  name_lang:
+    ru: настройки
+  desc_lang:
+    ru: Редактирует настройки сервера
+
+ddos:
+  name: ddos
+  desc: Displays the status of the servers
+  name_lang:
+    ru: ддос
+  desc_lang:
+    ru: Отображает состояние серверов
+
+player_top_10:
+  name: top_1s
+  desc: Outputs all maps in which the record is less than or equal to 10
+  name_lang:
+    ru: top_1s
+  desc_lang:
+    ru: Выводит все карты в которых рекорд меньше или равняется 10
+
+tee:
+  name: tee
+  desc: displays information about a tee if the tee is in the clan
+  name_lang:
+    ru: tee
+  desc_lang:
+    ru: отображает информацию о tee, если tee находится в клане
+
+add_tee:
+  name: add_tee
+  desc: This function is made for clans and function(ddnet channel)
+  name_lang:
+    ru: добавить_tee
+  desc_lang:
+    ru: Данная функция сделана для кланов и функции(ddnet канал)
+
+remove_tee:
+  name: remove_tee
+  desc: This function is made for clans and function(ddnet channel)
+  name_lang:
+    ru: убрать_tee
+  desc_lang:
+    ru: Данная функция сделана для кланов и функции(ddnet канал)
+
+ddnet_map:
+  name: map
+  desc: displays map data by name
+  name_lang:
+    ru: карта
+  desc_lang:
+    ru: отображение данных карты по названию
+
+join_history:
+  name: join_history
+  desc: creates a timeline of people coming in
+  name_lang:
+    ru: история_присоеденения
+  desc_lang:
+    ru: создает график прихода людей
+
+leaders:
+  name: leaders
+  desc: shows leaders by experience or by being in the voice channel
+  name_lang:
+    ru: лидеры
+  desc_lang:
+    ru: показывает лидеров по опыту или по наличию в голосовом канале
+
+rank:
+  name: rank
+  desc: gives the user's level and experience
+  name_lang:
+    ru: ранг
+  desc_lang:
+    ru: выдаёт уровень и опыт пользователя
+
+profile:
+  name: profile
+  desc: generates a user profile picture
+  name_lang:
+    ru: профиль
+  desc_lang:
+    ru: генерирует изображение профиля пользователя
+
+playtime:
+  name: playtime
+  desc: shows how much a player has played on cards and in total
+  name_lang:
+    ru: наигранное_время
+  desc_lang:
+    ru: показывает, сколько игрок сыграл на картах и в целом
+
+find:
+  name: find
+  desc: determines on which servers this player is present
+  name_lang:
+    ru: найти
+  desc_lang:
+    ru: определяет, на каких серверах присутствует данный игрок
+
+player:
+  name: player
+  desc: displays player data by nickname
+  name_lang:
+    ru: игрок
+  desc_lang:
+    ru: отображает данные игрока по его нику
+
+map_claimed:
+  name: passed_maps
+  desc: displays the number of passed maps up to a maximum of 10 pieces
+  name_lang:
+    ru: пройденные_карты
+  desc_lang:
+    ru: отображает количество пройденных карт максимум до 10 штук
+
+clans:
+  name: clans
+  desc: Displays information about clans
+  name_lang:
+    ru: кланы
+  desc_lang:
+    ru: Отображает информацию о кланах
+
+clan:
+  name: clan
+  desc: Displays information about the clan and shows the played people in this clan no more than 100
+  name_lang:
+    ru: клан
+  desc_lang:
+    ru: Отображает информацию о клане и показывает сыгранных людей в этом клане не более 100
+
+points:
+  name: points
+  desc: Displays a graph of players by points
+  name_lang:
+    ru: поинты
+  desc_lang:
+    ru: Отображает график игроков по поинтам
+
+dnd_roll:
+  name: dnd_roll
+  desc: randomize through the '5d20+20' die.
+  name_lang:
+    ru: dnd_кубик
+  desc_lang:
+    ru: randomize through the '5d20+20' die.
+
+dnd_stats:
+  name: dnd_stats
+  desc: Throws 4k6, sums the results, takes away the smallest value. Six times.
+  name_lang:
+    ru: dnd_статистика
+  desc_lang:
+    ru: Бросает 4k6, суммирует результаты, отнимает наименьшее значение. 6 раз.
+

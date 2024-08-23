@@ -20,7 +20,11 @@ pip install -r requirements.txt # install libraries
 ```bash
 export DISCORD_TOKEN="__TOKEN__"  # Instead of __TOKEN__ specify the bot token (linux).
 ```
-If you want to run the bot on windows, either put an environment variable or hardcode the variable
+If you want to run the bot on windows, either put an environment variable or hardcode the variable Or You can use config.yaml
+```yaml
+token: __TOKEN__
+```
+
 ```bash
 python main.py
 ```

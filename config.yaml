@@ -1,0 +1,34 @@
+configs:
+  cogs_dir: ./cogs
+  logger:
+    level: "INFO"
+    dir: "logs"
+  ddnet:
+    flag: /data/assets/flags
+    font: /data/assets/fonts
+    profile_backgrounds: /data/assets/profile_backgrounds
+    PPS_THRESHOLD: 30000  # china got a lot of players
+    PPS_RATIO_MIN: 1000  # ratio is not reliable for low traffic
+    PPS_RATIO_THRESHOLD: 2.5  # responding to less than half the traffic indicates junk traffic
+    thresholds:
+      20000: ("20k", (160, 32, 240))
+      18000: ("18k", (184, 81, 50))
+      17000: ("17k", (156, 162, 142))
+      16000: ("16k", (156, 162, 142))
+      15000: ("15k", (156, 162, 142))
+      14000: ("14k", (86, 79, 81))
+      12000: ("12k", (55, 103, 156))
+      10000: ("10k", (122, 32, 43))
+      9000: ("9k", (93, 128, 144))
+      8000: ("8k", (196, 172, 140))
+      7000: ("7k", (148, 156, 161))
+      6000: ("6k", (161, 140, 148))
+      5000: ("5k", (229, 148, 166))
+      4000: ("4k", (183, 188, 198))
+      3000: ("3k", (60, 76, 89))
+      2000: ("2k", (145, 148, 177))
+      1000: ("1k", (108, 12, 12))
+      1: ("1+", (148, 167, 75))
+      0: ("0", (156, 188, 220))
+
+token: None

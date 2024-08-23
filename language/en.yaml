@@ -1,0 +1,56 @@
+ddnet:
+  points_graph: points graph
+  powered_by: Powered by
+  pnf: Player not found
+  points: Points
+  first_finish: First finish
+  last_finish: Last finish
+  date: Date
+  time: Time
+  country: Country
+  favorite_partners: Favorite partners
+  finishes: Finishes
+  name: Name
+  hours: Hours
+  cnftp: Could not find that player
+  ttf: Total time for
+  CAMC10P: Can at most compare 10 players
+  Youhavenorights: You're using the wrong channel
+  NFSP: Number of servers processed
+  clan: Clan
+  clans: Clans
+  tuo: Top, clan, online
+  find:
+    server: Server
+    fsw: 'Found {0} server(s) with {1} currently playing:'
+  sopfp: Showing overall playtime for player
+  playtime: Playtime (hours)
+  mph: Map
+  cph: Category
+  gph: Type
+  tph: Total Playtime (hours)
+  nomt: number of maps traversed
+  date_history: Points history
+  cset: "The clan has been established: {0}"
+  plr_not_player: "The \"{0}\" was not detected"
+  perhaps_you: Perhaps you meant
+  map_not_found: Map was not found by the name \"{map}\"
+  mapper: Mapper
+  finishes_tee: "``{0}`` finishes by ``{1}`` tees"
+  med_time: Medium time
+  joined: Joined
+  ranks: Ranks
+  t_ranks: Team Ranks
+  max_finishes: Max finishes
+  biggest_team: biggest team
+  noop: Number of online participants
+  err_component: some components for creation are insufficient or missing
+  is_bot: This user is a bot
+  not_perm: The bot does not have enough permissions for this action
+  not_perm_user: You do not have sufficient rights to execute this command
+  find_bugs: "If you find a bug, tell its creator: \"byfox\"."
+  RE: Request error
+  idtgag: insufficient data to generate a graph
+  not_owner: You're not a guild owner
+  not_activity: "This function is unavailable\nbecause the host \"{0}\" is unavailable\n\nTry again later."
+  dm_not_guild: This command is not for DM

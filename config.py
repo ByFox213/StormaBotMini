@@ -1,2 +1,1 @@
-# config
-FLAG_UNK = '<:flag_unk:1241761122017873990>'
+FLAG_UNK = '<:flag_unk:1266017271155789886>'
