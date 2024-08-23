@@ -11,12 +11,10 @@ __all__ = (
 
 
 def seconds_to_hour(seconds: int) -> float:
-    if seconds < 360:          # seconds < hour / 10
+    if seconds < 360:  # seconds < hour / 10
         return 0.0
     data = str(seconds / 3600)
-    for count, i in enumerate(data):
-        if i == '.':
-            return float(data[:count+1])
+    return float(data[:data.rfind(".")+2])
 
 
 def seconds_to_time(seconds: int | float) -> str:
