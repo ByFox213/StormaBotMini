@@ -135,6 +135,8 @@ class DDnet(commands.Cog):
             return await im.send(embed=Embed(title=local.pnf, color=im.user.color), ephemeral=True)
 
         pl: str = "\n".join(find)
+        if len(pl) > 2000:
+            return await im.send(pl, True)
         embed: Embed = Embed(
             title=fi.fsw.format(count - 1, player),
             color=im.user.color,
@@ -433,7 +435,7 @@ class DDnet(commands.Cog):
                 server.packets_rx = -1
             if server.packets_tx is None:
                 server.packets_tx = -1
-            status = server_get_status_ddos(server, im.client.config.configs.ddnet)
+            status = server_get_status_ddos(server, im.client.dat.configs.ddnet)
 
             name = server.name.replace("DDNet ", '').upper()
             if "MASTER" not in name:
