@@ -1,7 +1,6 @@
 # Info
 
 StormaBot only, this is a Mini version without database and charts, there is only DDnet functionality and not all of it.
-Bot answers in Russian
 
 Don't forget to write in the description that I am a developer “Developer: ByFox” and specify the git of the project^^
 example:
