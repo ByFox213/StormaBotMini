@@ -118,8 +118,8 @@ async def generate_profile_image(self, data: DDPlayer, im):
     point, outer = 0, 32
     rank_str, points_str = "UNRANKED", "None"
     ranks_types = {
-        'TEAM RANK ': (data.team_rank.rank, data.team_rank.points if data.team_rank is not None else (None, None)),
-        'RANK ': (data.rank.rank, data.rank.points if data.rank is not None else (None, None))
+        'TEAM RANK ': (data.team_rank.rank, data.team_rank.points) if data.team_rank is not None else (None, None),
+        'RANK ': (data.rank.rank, data.rank.points) if data.rank is not None else (None, None)
     }
     points = data.points
     if points is not None:
