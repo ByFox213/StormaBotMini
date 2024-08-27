@@ -1,10 +1,11 @@
 aiohttp
 annotated-types
-ddapi>=0.4.7
-nextcord==2.6.0
+ddapi
+nextcord
 pillow==10.4.0
 pydantic
 plotly
 PYYAML
 orjson
 numpy
+kaleido
