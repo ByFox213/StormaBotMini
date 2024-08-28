@@ -223,8 +223,7 @@ def server_get_status_ddos(server: DDStatus, ddnet_config: DDnetConfig) -> str:
     if not server.online4:
         return 'down'
     elif (server.packets_rx > ddnet_config.PPS_THRESHOLD or
-          server.packets_rx > ddnet_config.PPS_RATIO_MIN and
-          server.packets_rx / server.packets_tx > ddnet_config.PPS_RATIO_THRESHOLD):
+            (server.packets_rx > ddnet_config.PPS_RATIO_MIN and server.packets_rx / server.packets_tx > ddnet_config.PPS_RATIO_THRESHOLD)):
         return 'ddos'
     return 'up'
 
