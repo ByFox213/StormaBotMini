@@ -7,6 +7,7 @@ __all__ = (
 )
 
 COUNTRYFLAGS_Names = {
+    "FIN": "🇫🇮",
     'NLD': '🇳🇱',
     'FRA': '🇫🇷',
     'GER': '🇩🇪',

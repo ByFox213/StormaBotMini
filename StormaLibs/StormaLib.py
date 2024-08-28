@@ -43,44 +43,6 @@ class StormBotInter(Interaction):
         super().__init__(data=data, state=state)
         self.bot_name = self.client.bot_name
 
-    def has_permissions(self, **perms: bool) -> bool:
-        invalid = set(perms) - set(Permissions.VALID_FLAGS)
-        if invalid:
-            raise TypeError(f"Invalid permission(s): {', '.join(invalid)}")
-
-        ch = self.channel
-        permissions = ch.permissions_for(self.user)  # type: ignore
-
-        missing = [perm for perm, value in perms.items() if getattr(permissions, perm) != value]
-
-        if not missing:
-            return True
-        return False
-
-    @property
-    def bot_perms(self) -> Permissions:
-        return self.guild.me.guild_permissions
-
-    @property
-    def perms(self) -> Permissions:
-        return self.user.guild_permissions
-
-    @property
-    async def admin(self) -> bool:
-        return self.has_permissions(administrator=True) or await self.bot_owner
-
-    @property
-    async def bot_owner(self) -> bool:
-        if not await self.client.is_owner(self.user):
-            return False
-        return True
-
-    @property
-    async def owner(self) -> bool:
-        if self.guild is not None:
-            return self.user.id == self.guild.owner_id
-        return False
-
     def func(self, func_name: str, name: str = ''):
         if name != '':
             name = f'{name} | '
