@@ -386,7 +386,7 @@ class DDnet(commands.Cog):
         await im.response.defer()
 
         mapi = await self.dd.map(map_name)
-        if mapi is None:
+        if mapi is None or mapi.difficulty is None:
             return await im.send(embed=Embed(title=local.map_not_found.format(map=map_name), color=Color.red()))
 
         embed = Embed(title=f"{mapi.type} {mapi.name} | {'☆☆☆☆☆'.replace('☆', '★', mapi.difficulty)}",

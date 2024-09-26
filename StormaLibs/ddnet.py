@@ -325,7 +325,7 @@ async def create_embed_playtime(interaction: StormBotInter, dd: DDstats, player:
     )
     embed.add_field(
         name=f"```{localization.tph}```",
-        value=f"```{seconds_to_hour(user_data.played_time)}```", inline=False
+        value=f"```{seconds_to_hour(sum(i.seconds_played for i in user_data.most_played_gametypes))}```", inline=False
     )
     embed.set_author(name=f"{localization.sopfp}, {player}")
 

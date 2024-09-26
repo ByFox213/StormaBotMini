@@ -47,12 +47,9 @@ class StormBotInter(Interaction):
             name = f'{name} | '
         if self.user is not None:
             _log.info(f"%s | %s(%s): %s", name, self.user.name, self.user.id, func_name)
-        if self.client.commands_count.get(func_name) is None:
-            self.client.commands_count[func_name] = 0
-        self.client.commands_count[func_name] += 1
 
     def get_langs(self) -> Lang:
-        cl = self.client.infobot.lang
+        cl = self.client.lang
         data = cl.get(self.locale, None)
         if data is None:
             data = cl["en"]
