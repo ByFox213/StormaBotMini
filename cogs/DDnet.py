@@ -1,3 +1,4 @@
+import logging
 from ast import literal_eval
 from os import getcwd
 
@@ -9,23 +10,23 @@ from nextcord.ext import commands
 from nextcord.utils import utcnow
 from ddapi import DDnetApi, DDstats
 
-from StormaLibs import clang, StormBotInter, nickname, nickname_nr
-from StormaLibs.StormaLib import send_query
+from StormaLibs import clang, StormBotInter, send_query, Types, nickname, nickname_nr
 from StormaLibs.data.dataclass import LangDDnet, Config
-from StormaLibs.data.enums import Types
-from StormaLibs.data.types import Nickname
-from StormaLibs.times import seconds_to_time, seconds_to_hour
+from StormaLibs.times import seconds_to_time
 from StormaLibs.grafic import create_image
 from StormaLibs.country import FLAG_UNK, flag
 from StormaLibs.ddnet import country_size, humanize_pps, generate_profile_image, \
-    server_get_status_ddos, most_played_sort, most_played_generator, max_length_check, get_files_image
+    server_get_status_ddos, get_files_image, create_embed_playtime
 
 
 class DDnet(commands.Cog):
     def __init__(self, config: Config, **_):
+        self.configs = config.configs
         cwd = getcwd()
         configs = config.configs
         font = cwd + configs.ddnet.font
+
+        # API
 
         self.dd = DDnetApi()
         self.ddrace = DDstats()
@@ -55,58 +56,24 @@ class DDnet(commands.Cog):
                       description_localizations=clang.profile.desc_lang)
     async def profile(self, im: StormBotInter, player: str = nickname):
         im.func("ddnet_profile", player)
+        local = im.get_langs().ddnet
         await im.response.defer()
 
-        data: DDPlayer = await self.dd.player(Nickname(player))
+        data: DDPlayer = await self.dd.player(player)
         if data is None:
-            return await send_query(im)
+            return await send_query(player, im, local, await self.dd.query(player))
         await im.client.loop.create_task(generate_profile_image(self, data, im))
 
     @ddnet.subcommand(name=clang.playtime.name,
                       description=clang.playtime.desc,
                       name_localizations=clang.playtime.name_lang,
                       description_localizations=clang.playtime.desc_lang)
-    async def playtime(self, im: StormBotInter, player: str = nickname):
-        im.func("ddnet_playtime", player)
-        local = im.get_langs().ddnet
-        usr = await self.ddstats_request(im, Nickname(player), local)
-        if usr is None:
-            return
-
-        if usr.most_played_categories is None or usr.most_played_maps is None or usr.most_played_gametypes is None or \
-                not usr.most_played_categories or not usr.most_played_maps or not usr.most_played_gametypes:
-            return await im.send(Types.RE, description=local.err_component)
-
-        gametypes_sorted = most_played_sort(usr.most_played_gametypes[:5])
-        maps_sorted = most_played_sort(usr.most_played_maps[:15], lambda v: (v.map_name, v.seconds_played))
-        categories_sorted = most_played_sort(usr.most_played_categories)
-
-        max_length_title = max_length_check(set(len(i[0]) for i in maps_sorted))
-
-        gametypes = "\n".join(most_played_generator(max_length_title, gametypes_sorted))
-        maps = "\n".join(most_played_generator(max_length_title, maps_sorted))
-        categories = "\n".join(most_played_generator(max_length_title, categories_sorted))
-
-        embed = Embed(title=f"{local.sopfp}, {player}", color=im.user.color)
-        embed.add_field(
-            name=f"```{local.gph:<{max_length_title}}{local.playtime}```",
-            value=f"```{gametypes}```", inline=False
-        )
-        embed.add_field(
-            name=f"```{local.mph:<{max_length_title}}{local.playtime}```",
-            value=f"```{maps}```",
-            inline=False
-        )
-        embed.add_field(
-            name=f"```{local.cph:<{max_length_title}}{local.playtime}```",
-            value=f"```{categories}```", inline=False
-        )
-        embed.add_field(
-            name=f"```{local.tph}```",
-            value=f"```{seconds_to_hour(sum(i.seconds_played for i in usr.most_played_gametypes))}```", inline=False
-        )
-        embed.set_footer(text=f"{local.powered_by} {self.ddrace.powered()}")
-        return await im.send(embed=embed)
+    async def playtime(self, interaction: StormBotInter, player: str = nickname):
+        """Отправляет сообщение с данными пользователя"""
+        await interaction.response.defer()
+        interaction.func("playtime", player)
+        embed = await create_embed_playtime(interaction, self.ddrace, player)
+        return await interaction.send(embed=embed)
 
     @ddnet.subcommand(name=clang.find.name,
                       description=clang.find.desc,
@@ -122,28 +89,39 @@ class DDnet(commands.Cog):
         if servers is None:
             return await im.send(Types.RE)
 
-        count_server: int = servers.get_count()
         count: int = 1
-        find: list = []
+        find_: dict = {}
         async for info in servers.get_info():
             for user in info.clients:
-                if user.name == player:
-                    find.append(f"{count}. {fi.server}: {info.name}: {info.map.get('name', '')}")
-                    count += 1
+                if user.name != player:
+                    continue
 
-        if len(find) == 0:
+                server_name = str(info.name)
+                if find_.get(server_name) is None:
+                    find_[server_name] = []
+
+                find_[server_name].append(f"- {count}. {info.map.get('name', '')}\n")
+                count += 1
+
+        find = ''.join([f"\n{k}:\n{''.join(i)}" for k, i in find_.items()])
+        ln_find = len(find)
+
+        if ln_find == 0:
             return await im.send(embed=Embed(title=local.pnf, color=im.user.color), ephemeral=True)
 
-        pl: str = "\n".join(find)
-        if len(pl) > 2000:
-            return await im.send(pl, True)
+        if ln_find > 2000:
+            return await im.send(
+                f"{fi.fsw.format(count - 1, player)}\n"
+                f"{find}\n\n{local.powered_by} {self.dd.powered()} | {local.NFSP}: {len(servers)}",
+                True
+            )
         embed: Embed = Embed(
             title=fi.fsw.format(count - 1, player),
             color=im.user.color,
-            description=pl
+            description=find
         )
 
-        embed.set_footer(text=f"{local.powered_by} {self.dd.powered()} | {local.NFSP}: {count_server}")
+        embed.set_footer(text=f"{local.powered_by} {self.dd.powered()} | {local.NFSP}: {len(servers)}")
         return await im.send(embed=embed)
 
     @ddnet.subcommand(name=clang.player.name,
@@ -153,11 +131,12 @@ class DDnet(commands.Cog):
     async def ddnet_player(self, im: StormBotInter, player: str = nickname):
         im.func("ddnet_player", player)
         local = im.get_langs().ddnet
+
         await im.response.defer()
-        data: DDPlayer = await self.dd.player(Nickname(player))
+        data: DDPlayer = await self.dd.player(player)
 
         if data is None:
-            return await send_query(im)
+            return await send_query(player, im, local, await self.dd.query(player))
 
         poi, ff = data.points, data.first_finish
         if ff is None or data.last_finishes is None:
@@ -183,6 +162,7 @@ class DDnet(commands.Cog):
                     name=local.favorite_partners,
                     value=f"{local.name}: {i.name}\n{local.finishes}: {i.finishes}"
                 )
+
         embed.set_footer(text=f"{local.powered_by} {self.dd.powered()}")
         return await im.send(embed=embed)
 
@@ -196,9 +176,9 @@ class DDnet(commands.Cog):
         local = im.get_langs().ddnet
         await im.response.defer()
 
-        usr = await self.dd.player(Nickname(player))
-        if usr is None:
-            return await send_query(im)
+        usr = await self.dd.player(player)
+        if usr is None or usr.types is None:
+            return await send_query(player, im, local, await self.dd.query(player))
 
         maps = sorted((
                 (map_name, data.get("finishes"))
@@ -222,21 +202,34 @@ class DDnet(commands.Cog):
                       name_localizations=clang.clans.name_lang,
                       description_localizations=clang.clans.desc_lang)
     async def ddnet_clans(self, im: StormBotInter,
-                          count: int = SlashOption(name="count", min_value=10, max_value=250, default=None, required=False)):
+                          count: int = SlashOption(
+                              name="count",
+                              min_value=10,
+                              max_value=250,
+                              default=None,
+                              required=False
+                          )):
         if count is None:
             count = 10
         im.func("ddnet_clans", str(count))
         local = im.get_langs().ddnet
+
         await im.response.defer()
 
         master: Master = await self.dd.master()
         if master is None:
             return await im.send(Types.RE)
-        dat = master.get_clans(count)
+        try:
+            dat = master.get_clans(count)
+        except TypeError:
+            logging.exception("ddnet_clans exception TypeError: type_master: %s, master_data: %s",
+                              (type(master), master))
+            return await im.send(Types.RE)
 
         desk = local.tuo + "\n" + "\n".join(f"``{count}``, ``{n}``, {o}" for count, (n, o) in enumerate(dat, 1))
         if len(desk) > 2000:
-            desk = f"{local.clans}: {count}\n\n" + desk.replace('`',  '') + f"\n\n{local.powered_by} {self.dd.powered()}"
+            desk = (f"{local.clans}: {count}\n\n" + desk.replace('`',  '') +
+                    f"\n\n{local.powered_by} {self.dd.powered()}")
             return await im.send(desk, True)
 
         embed = Embed(title=f"{local.clans}: {count}", description=desk, color=im.user.color)
@@ -247,7 +240,7 @@ class DDnet(commands.Cog):
                       description=clang.clan.desc,
                       name_localizations=clang.clan.name_lang,
                       description_localizations=clang.clan.desc_lang)
-    async def ddnet_clan(self, im: StormBotInter, clan: str = SlashOption(name="clan")):
+    async def ddnet_clan(self, im: StormBotInter, clan: str):
         im.func("ddnet_clan", clan)
 
         local = im.get_langs().ddnet
@@ -256,13 +249,11 @@ class DDnet(commands.Cog):
         master: Master = await self.dd.master()
         if master is None or not master:
             return await im.send(Types.RE)
-        clients = [
-            (info.name, client.name)
-            async for info in master.get_info()
-            for client in info.clients
-            if client.clan == clan and client.clan != ''
-            if client is not None and client.clan is not None
-        ]
+        clients = [(info.name, client.name)
+                   async for info in master.get_info()
+                   for client in info.clients
+                   if client.clan == clan and client.clan != ''
+                   if client is not None and client.clan is not None]
 
         clients_str, e = '', ''
         for server_name, client_name in clients[:100]:
@@ -274,8 +265,10 @@ class DDnet(commands.Cog):
         desk = f"{local.noop}: {len(clients)}\n\n{clients_str}"
         if len(desk) > 2000:
             return await im.send(f"{local.clan}: {clan}\n\n" + desk.replace('``', ''))
-
-        return await im.send(embed=Embed(title=f"{local.clan}: {clan}", description=desk, color=im.user.color).set_footer(text=f"{local.powered_by} {self.dd.powered()}"))
+        return await im.send(
+            embed=Embed(
+                title=f"{local.clan}: {clan}", description=desk, color=im.user.color
+            ).set_footer(text=f"{local.powered_by} {self.dd.powered()}"))
 
     @ddnet.subcommand(name=clang.points.name,
                       description=clang.points.desc,
@@ -295,7 +288,13 @@ class DDnet(commands.Cog):
                      mode: str = SlashOption(required=False, description='default: lines', default='lines',
                                              choices=["lines+markers", "markers"])
                      ):
-        ppl = list(set([i for i in [_player, player1, player2, player3, player4, player5, player6, player7, player8, player9] if i is not None]))
+        ppl = list(
+            set([
+                i
+                for i in [_player, player1, player2, player3, player4, player5, player6, player7, player8, player9]
+                if i is not None
+            ])
+        )
         im.func("points", str(ppl))
         local = im.get_langs().ddnet
         await im.response.defer()
@@ -306,9 +305,9 @@ class DDnet(commands.Cog):
             times.append([])
             points.append([])
 
-            usr = await self.ddrace.player(Nickname(player))
+            usr = await self.ddrace.player(player)
             if usr is None:
-                return await send_query(im)
+                return await send_query(_player, im, local, await self.dd.query(_player))
             if usr.points_graph is None or len(usr.points_graph) < 5:
                 return await im.send(Types.idtgag, description=f"nickname: {player}")
             for i in usr.points_graph:
@@ -325,7 +324,17 @@ class DDnet(commands.Cog):
         for i in times:
             i.append(max_time)
 
-        fl = create_image(times, points, f"{im.user.id}_points", f"{local.date_history}: {players}", local.points, local.date, players, False, mode)
+        fl = create_image(
+            times,
+            points,
+            f"{im.user.id}_points",
+            f"{local.date_history}: {players}",
+            local.points,
+            local.date,
+            players,
+            False,
+            mode
+        )
         return await im.send(file=fl)
 
     @ddnet.subcommand(name=clang.rank_points.name,
@@ -339,7 +348,7 @@ class DDnet(commands.Cog):
                           ):
         im.func("rank_points", str(player))
         local = im.get_langs().ddnet
-        usr = await self.ddstats_request(im, Nickname(player), local)
+        usr = await self.ddstats_request(im, player, local)
         if usr is None:
             return
 
@@ -352,7 +361,17 @@ class DDnet(commands.Cog):
             points[1].append(i.team_points)
             times.append(i.date)
 
-        fl = create_image([times, times], points, f"{im.user.id}_rank_points", f"rank points: {player}", local.points, local.date, ["rank_points", "team_points"], True, mode)
+        fl = create_image(
+            [times, times],
+            points,
+            f"{im.user.id}_rank_points",
+            f"rank points: {player}",
+            local.points,
+            local.date,
+            ["rank_points", "team_points"],
+            True,
+            mode
+        )
         return await im.send(file=fl)
 
     @ddnet.subcommand(name=clang.ddnet_map.name,
@@ -361,26 +380,39 @@ class DDnet(commands.Cog):
                       description_localizations=clang.ddnet_map.desc_lang)
     async def ddnet_map(self, im: StormBotInter,
                         map_name: str = SlashOption(name="map", name_localizations={Locale.ru: "карта"})):
-        if map_name == "None":
-            return await im.send(embed=Embed(title="Not Found", color=Color.red()))
-
         im.func("points", map_name)
         local = im.get_langs().ddnet
+
         await im.response.defer()
 
         mapi = await self.dd.map(map_name)
         if mapi is None:
             return await im.send(embed=Embed(title=local.map_not_found.format(map=map_name), color=Color.red()))
+
         embed = Embed(title=f"{mapi.type} {mapi.name} | {'☆☆☆☆☆'.replace('☆', '★', mapi.difficulty)}",
-                      description=f"{local.mapper}: ``{mapi.mapper}``\n{local.finishes_tee.format(mapi.finishes, mapi.finishers)}\n{local.biggest_team}: ``{mapi.biggest_team}``",
+                      description=f"{local.mapper}: ``{mapi.mapper}``\n"
+                                  f"{local.finishes_tee.format(mapi.finishes, mapi.finishers)}\n"
+                                  f"{local.biggest_team}: ``{mapi.biggest_team}``",
                       url=mapi.website, color=im.user.color)
 
         embed.set_thumbnail(url=mapi.thumbnail)
         embed.add_field(name=local.med_time, value=seconds_to_time(mapi.median_time), inline=False)
         for ranks, name in [
-            [(f"{flag(i.country)}{i.rank}. ``{' & '.join(i.players)}`` | {seconds_to_time(i.time)}" for i in mapi.team_ranks[:10]), local.t_ranks],
-            [(f"{flag(i.country)}{i.rank}. ``{i.player}`` | {seconds_to_time(i.time)}" for i in mapi.ranks[:15]), local.ranks],
-            [(f"{i.rank}. ``{i.player}``: {i.num}" for i in mapi.max_finishes), local.max_finishes]
+            [
+                (
+                        f"{flag(i.country)}{i.rank}. ``{' & '.join(i.players)}`` | {seconds_to_time(i.time)}"
+                        for i in mapi.team_ranks[:10]
+                ), local.t_ranks],
+            [
+                (
+                        f"{flag(i.country)}{i.rank}. ``{i.player}`` | {seconds_to_time(i.time)}"
+                        for i in mapi.ranks[:15]
+                ), local.ranks],
+            [
+                (
+                        f"{i.rank}. ``{i.player}``: {i.num}"
+                        for i in mapi.max_finishes
+                ), local.max_finishes]
         ]:
             if ranks:
                 embed.add_field(name=name, value="\n".join(ranks))
@@ -394,7 +426,7 @@ class DDnet(commands.Cog):
     async def top_1s(self, im: StormBotInter, player: str = nickname):
         im.func("player_top_10", player)
         local = im.get_langs().ddnet
-        usr = await self.ddstats_request(im, Nickname(player), local)
+        usr = await self.ddstats_request(im, player, local)
         if usr is None:
             return
 
@@ -410,11 +442,11 @@ class DDnet(commands.Cog):
         if len(top1s) > 2000:
             return await im.send(player + '\n' + top1s)
 
-        # skin = await self.get_skin(usr.profile)
-
-        embed = Embed(title="player", description=top1s, color=im.user.color)
-        embed.set_footer(text=f"{local.powered_by} {self.ddrace.powered()}")
-        # embed.set_author(name="player", icon_url=skin if skin is not None else None)
+        embed = Embed(
+            title="player",
+            description=top1s,
+            color=im.user.color
+        ).set_footer(text=f"{local.powered_by} {self.ddrace.powered()}")
         return await im.send(embed=embed)
 
     @ddnet.subcommand(name=clang.ddos.name,
@@ -429,23 +461,30 @@ class DDnet(commands.Cog):
         if status is None:
             return await im.send(Types.RE)
 
-        rows = [f'{FLAG_UNK} `server| +- | ▲ pps | ▼ pps `']
+        rows = [f'{FLAG_UNK} `server  | +- | ▲ pps | ▼ pps `']
         for server in status.servers:
             if server.packets_rx is None:
                 server.packets_rx = -1
             if server.packets_tx is None:
                 server.packets_tx = -1
-            status = server_get_status_ddos(server, im.client.dat.configs.ddnet)
+            status = server_get_status_ddos(server, self.configs.ddnet)
 
             name = server.name.replace("DDNet ", '').upper()
             if "MASTER" not in name:
                 name = country_size(name, 3)
-            rows.append(f'{flag(name)} `{name:<8}|{status:^4}|{humanize_pps(server.packets_rx):>7}|{humanize_pps(server.packets_tx):>7}`')
+            rows.append(f'{flag(name)} `{name:<8}|{status:^4}|'
+                        f'{humanize_pps(server.packets_rx):>7}|'
+                        f'{humanize_pps(server.packets_tx):>7}`')
 
-        embed = Embed(title='Server Status', description='\n'.join(rows), url="https://ddnet.org/status/", timestamp=utcnow())
+        embed = Embed(
+            title='Server Status',
+            description='\n'.join(rows),
+            url="https://ddnet.org/status/",
+            timestamp=utcnow()
+        )
         return await im.send(embed=embed)
 
-    async def ddstats_request(self, im: StormBotInter, player: Nickname, local: LangDDnet):
+    async def ddstats_request(self, im: StormBotInter, player: str, local: LangDDnet):
         await im.response.defer()
 
         usr = await self.ddrace.player(player)

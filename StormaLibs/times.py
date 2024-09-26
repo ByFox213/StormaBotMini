@@ -1,12 +1,8 @@
 import time
-from datetime import UTC, datetime
-
-from nextcord.utils import format_dt
-
 
 __all__ = (
     "seconds_to_hour",
-    "seconds_to_time",
+    "seconds_to_time"
 )
 
 
@@ -19,7 +15,6 @@ def seconds_to_hour(seconds: int) -> float:
 
 def seconds_to_time(seconds: int | float) -> str:
     x = time.gmtime(seconds)
-    fr = "%H:%M:%S"
     if x.tm_mday > 1:
-        fr = f"%D:%H:%M:%S"
-    return time.strftime(fr, x)
+        return time.strftime(f"%D:%H:%M:%S", x)
+    return time.strftime("%H:%M:%S", x)

@@ -4,10 +4,10 @@ from typing import Any, Generator, Iterable
 
 import nextcord
 from PIL import Image, ImageDraw
-from nextcord import SlashOption, Locale
-from ddapi import DDPlayer, DDStatus, Master
+from nextcord import SlashOption, Locale, Embed, Color
+from ddapi import DDPlayer, DDStatus, DDstats, Master
 
-from .data.types import T, Nickname
+from .StormaLib import StormBotInter
 from .grafic import round_rectangle, center, save
 from .data.dataclass import DDnetConfig
 from .times import seconds_to_hour
@@ -24,18 +24,30 @@ __all__ = (
     "server_get_status_ddos",
     "plural",
     "country_size",
+    "get_files_image",
+    "slugify2",
+    "create_embed_playtime",
     "max_length_check",
     "most_played_sort",
     "most_played_generator",
-    "get_files_image",
-    "slugify2"
+    "server_get_status_ddos"
 )
 
 BASE_URL = 'https://ddnet.org'
 slugify2_symbols = '[\t !"#$%&\'()*-/<=>?@[\\]^_`{|},.:]+'
 
+MAX_GAMETYPES = 5
+MAX_MAPS = 10
+MAX_CATEGORIES = 10
 
-def slugify2(_nickname: Nickname):
+MARGIN = 32
+INNER = 12
+FLAG_SIZE = (20, 20)
+NAME_HEIGHT = 50
+RADIUS = int(NAME_HEIGHT / 2)
+
+
+def slugify2(_nickname: str):
     """Needed for a link generator."""
     string = ""
     for symbol in _nickname:
@@ -99,22 +111,24 @@ def nickname_nr(number) -> SlashOption:
 
 def get_url(pl: str) -> str:
     """creating a user url to output to the user."""
-    return f"https://ddnet.org/players/{slugify2(Nickname(urllib.parse.quote(pl)))}"
+    return f"https://ddnet.org/players/{urllib.parse.quote(slugify2(pl))}"
 
 
-async def checker(ms: Master, clan: str, nicknames: list[Nickname]) -> list:
+async def checker(ms: Master, clan: str, nicknames: list[str]) -> list:
     """Receives nicknames of users from the clan"""
     cll = []
-    nicknames = [i.lower() for i in nicknames]
-    for i in ms.servers:
-        q = [client.name for client in i.info.clients if
-             client.name is not None and client.name.lower() in nicknames or client.clan == clan]
+    nicknames = map(lambda n: n.lower(), nicknames)
+    async for i in ms.get_info():
+        q = [client.name
+             for client in i.clients
+             if client.name is not None
+             and client.name.lower() in nicknames or client.clan == clan]
         if q:
-            cll.append([f"{i.info.name}: {i.info.map.get('name', '')}", q])
+            cll.append([f"{i.name}: {i.map.get('name', '')}", q])
     return cll
 
 
-async def generate_profile_image(self, data: DDPlayer, im):
+async def generate_profile_image(self, data: DDPlayer, interacton: StormBotInter):
     point, outer = 0, 32
     rank_str, points_str = "UNRANKED", "None"
     ranks_types = {
@@ -146,7 +160,7 @@ async def generate_profile_image(self, data: DDPlayer, im):
         flag = self.flags.get("UNK")
     flag_w, flag_h = flag.size
 
-    name = ' ' + data.player
+    name = ' ' + data.player if data.player is not None else 'Not Found'
     _, _, w, _ = self.font_bold.getbbox(name)
     _, _, _, h = self.font_bold.getbbox('yA')  # hardcoded to align names
     name_height = 50
@@ -215,7 +229,7 @@ async def generate_profile_image(self, data: DDPlayer, im):
                 canv.text((x, y - h), points_str, fill=color_, font=font)
 
     file = nextcord.File(save(base.convert('RGB')), filename=f'profile_{data.player}.png')
-    return await im.send(file=file)
+    return await interacton.send(file=file)
 
 
 def server_get_status_ddos(server: DDStatus, ddnet_config: DDnetConfig) -> str:
@@ -223,7 +237,7 @@ def server_get_status_ddos(server: DDStatus, ddnet_config: DDnetConfig) -> str:
     if not server.online4:
         return 'down'
     elif (server.packets_rx > ddnet_config.PPS_THRESHOLD or
-            (server.packets_rx > ddnet_config.PPS_RATIO_MIN and server.packets_rx / server.packets_tx > ddnet_config.PPS_RATIO_THRESHOLD)):
+          (server.packets_rx > ddnet_config.PPS_RATIO_MIN and server.packets_rx / server.packets_tx > ddnet_config.PPS_RATIO_THRESHOLD)):
         return 'ddos'
     return 'up'
 
@@ -256,12 +270,15 @@ def country_size(name: str, key: int, org: int = 3) -> str:
     return name[:org] + num
 
 
-def max_length_check(numbers: Iterable[T]) -> int:
+def max_length_check(numbers: Iterable[int]) -> int:
     """Need for determining the length of spaces and readability in the playtime command."""
     if not numbers:
         return 20
     number = max(numbers)
-    return number + 2 if number > 18 else 20
+    return (
+        number + 2
+        if 18 < number < 30 else 20 if number < 30 else 40
+    )
 
 
 def most_played_sort(x: list, func=lambda v: (v.key, v.seconds_played)) -> list[tuple[Any, Any]]:
@@ -271,4 +288,46 @@ def most_played_sort(x: list, func=lambda v: (v.key, v.seconds_played)) -> list[
 
 def most_played_generator(max_length: int, sort: list) -> Generator[str, Any, None]:
     """Creates a generator for later use"""
-    return (f"{i:<{max_length}}{seconds_to_hour(o)}" for i, o in sort)
+    return (f"{i[:max_length-2]:<{max_length}}{seconds_to_hour(o)}" for i, o in sort)
+
+
+async def create_embed_playtime(interaction: StormBotInter, dd: DDstats, player: str) -> Embed:
+    """Creates an embed message with the user's game time data"""
+    localization = interaction.get_langs().ddnet
+    user_data = await dd.player(player)
+
+    if not user_data.most_played_categories or not user_data.most_played_maps or not user_data.most_played_gametypes:
+        return Embed(title=localization.pnf, color=Color.red())
+
+    gametypes_sorted = most_played_sort(user_data.most_played_gametypes[:MAX_GAMETYPES])
+    maps_sorted = most_played_sort(user_data.most_played_maps[:MAX_MAPS], lambda v: (v.map_name, v.seconds_played))
+    categories_sorted = most_played_sort(user_data.most_played_categories[:MAX_CATEGORIES])
+
+    max_length_title = max_length_check(set(len(i[0]) for i in maps_sorted))
+
+    gametypes = "\n".join(most_played_generator(max_length_title, gametypes_sorted))
+    maps = "\n".join(most_played_generator(max_length_title, maps_sorted))
+    categories = "\n".join(most_played_generator(max_length_title, categories_sorted))
+
+    embed = Embed(color=interaction.user.color)
+    embed.add_field(
+        name=f"```{localization.gph:<{max_length_title}}{localization.playtime}```",
+        value=f"```{gametypes}```", inline=False
+    )
+    embed.add_field(
+        name=f"```{localization.mph:<{max_length_title}}{localization.playtime}```",
+        value=f"```{maps}```",
+        inline=False
+    )
+    embed.add_field(
+        name=f"```{localization.cph:<{max_length_title}}{localization.playtime}```",
+        value=f"```{categories}```", inline=False
+    )
+    embed.add_field(
+        name=f"```{localization.tph}```",
+        value=f"```{seconds_to_hour(user_data.played_time)}```", inline=False
+    )
+    embed.set_author(name=f"{localization.sopfp}, {player}")
+
+    embed.set_footer(text=f"{localization.powered_by} {dd.powered()}")
+    return embed
