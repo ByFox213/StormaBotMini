@@ -2,7 +2,7 @@ aiohttp
 annotated-types
 ddapi
 nextcord
-pillow==10.4.0
+pillow==11.0.0
 pydantic
 plotly
 PYYAML
